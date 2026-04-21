@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- Doctor: report lock owner PID and distinguish paired stores locked by another process. (#105 — thanks @artemgetmann)
 - Media: recover panics per download job so one bad payload no longer drains the worker pool. (#179 — thanks @shaun0927)
 - Messages: attribute history messages from LID-addressed groups to the top-level participant sender. (#19 — thanks @entropyy0)
 - Messages: show display text for replies, reactions, and media in `messages context`. (#183 — thanks @fuleinist)
