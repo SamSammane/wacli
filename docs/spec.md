@@ -136,6 +136,8 @@ Global flags:
 - `--json` (default: human text)
 - `--full` (disable table truncation; non-TTY output keeps full IDs)
 - `--timeout DURATION` (non-sync commands; e.g. `5m`)
+- `--lock-wait DURATION` (wait for the store lock before failing write commands)
+- `--read-only` (reject commands that intentionally write WhatsApp or the local store; also `WACLI_READONLY=1`)
 - `--version` (prints version and exits)
 
 ### Doctor
@@ -162,6 +164,7 @@ Notes:
 WhatsApp Web history is best-effort. If you want to try fetching *older* messages for a specific chat, `wacli` can send an on-demand history request to your primary device:
 
 - `wacli history backfill --chat JID [--count 50] [--requests N]`
+- Backfill caps: `--count <= 500`, `--requests <= 100`.
 
 ### Messages
 

@@ -21,9 +21,9 @@ Core implementation is in place. See `docs/spec.md` for design notes.
 - **Message tools**: list/search/show/context with chat, sender, direction, time, order, and media-type filters.
 - **Sending**: send text, quoted text replies, and image/video/audio/document files with captions, MIME override, and custom display filenames.
 - **Media**: download synced message media on demand, or download in the background during auth/sync.
-- **Contacts/chats/groups**: search/show contacts, local aliases/tags, list/show chats, refresh/list/info/rename groups, manage participants, invite links, join, and leave.
+- **Contacts/chats/groups**: search/show contacts, local aliases/tags, list/show chats, refresh/list/info/rename groups, manage participants, invite links, join, and leave; left groups are hidden after leave.
 - **Presence**: send typing/paused indicators.
-- **Diagnostics + safety**: `doctor`, store locks with lock-owner reporting, owner-only database permissions, panic recovery, reconnect bounds, and bounded media queue backpressure.
+- **Diagnostics + safety**: `doctor`, read-only mode, store locks with lock-owner reporting, lock waiting, owner-only database permissions, panic recovery, reconnect bounds, and bounded media queue backpressure.
 - **CLI UX**: human-readable tables by default; `--json` for scripts; `--full` to avoid truncation.
 
 ## Install / Build
@@ -99,6 +99,7 @@ pnpm wacli presence paused --to 1234567890
 - `wacli sync`: non-interactive sync loop (never shows QR; errors if not authenticated).
 - Output is human-readable by default; pass `--json` for machine-readable output.
 - Pass `--full` to keep full IDs in table output; non-TTY output keeps full IDs automatically.
+- Pass `--read-only` or set `WACLI_READONLY=1` to block commands that intentionally mutate WhatsApp or the local store.
 
 ## Command surface
 
@@ -138,10 +139,20 @@ pnpm wacli presence paused --to 1234567890
 
 Defaults to `~/.wacli` (override with `--store DIR`).
 
+Global flags:
+
+- `--store DIR`: store directory.
+- `--json`: JSON output.
+- `--full`: disable table truncation.
+- `--timeout DURATION`: timeout for non-sync commands.
+- `--lock-wait DURATION`: wait for the store lock before failing write commands.
+- `--read-only`: reject commands that intentionally write WhatsApp or the local store.
+
 ## Environment overrides
 
 - `WACLI_DEVICE_LABEL`: set the linked device label (shown in WhatsApp).
 - `WACLI_DEVICE_PLATFORM`: override the linked device platform (defaults to `CHROME` if unset or invalid).
+- `WACLI_READONLY`: set to `1`, `true`, `yes`, or `on` to enable read-only mode.
 - `WACLI_STORE_DIR`: override the default store directory.
 
 ## Backfilling older history
@@ -153,7 +164,8 @@ Important notes:
 - This is **best-effort**: WhatsApp may not return full history.
 - Your **primary device must be online**.
 - Requests are **per chat** (DM or group). `wacli` uses the *oldest locally stored message* in that chat as the anchor.
-- Recommended `--count` is `50` per request.
+- Recommended `--count` is `50` per request; maximum is `500`.
+- Maximum `--requests` per run is `100`.
 
 ### Backfill one chat
 

@@ -4,6 +4,8 @@
 
 ### Added
 
+- CLI: add `--read-only`/`WACLI_READONLY` to reject commands that write WhatsApp or the local store.
+- CLI: add `--lock-wait` to wait for transient store locks before failing write commands.
 - CLI: add `--full` to disable table truncation; piped output now keeps full message IDs. (#13 — thanks @rickhallett)
 - CLI: add `presence typing` and `presence paused` commands for WhatsApp composing indicators. (#76 — thanks @redemerco)
 - Diagnostics: show linked JID and local store counts in `auth status` and `doctor`. (#149 — thanks @draix)
@@ -19,6 +21,9 @@
 
 ### Fixed
 
+- Groups: hide groups after `groups leave` and show them again if a later refresh reports membership.
+- History: cap on-demand backfill at 500 messages per request and 100 requests per run.
+- Messages: normalize device-specific `@s.whatsapp.net` JIDs before storing chats, contacts, and senders.
 - Doctor: report lock owner PID and distinguish paired stores locked by another process. (#105 — thanks @artemgetmann)
 - Media: recover panics per download job so one bad payload no longer drains the worker pool. (#179 — thanks @shaun0927)
 - Messages: attribute history messages from LID-addressed groups to the top-level participant sender. (#19 — thanks @entropyy0)
@@ -41,6 +46,8 @@
 
 - CI: compile-test the Windows lock package to catch platform regressions. (#188 — thanks @dinakars777)
 - Dependencies: update Go modules including `whatsmeow`, `go-sqlite3`, `x/*`, and related runtime libs.
+- Refactor: split WhatsApp message parsing into focused text, media, business, and context helpers.
+- Refactor: inject clocks in app/store paths for deterministic tests.
 - Version: bump CLI version string to `0.7.0`.
 
 ## 0.6.0 - 2026-04-14
