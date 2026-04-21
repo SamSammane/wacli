@@ -1,10 +1,46 @@
 # Changelog
 
-## 0.5.0 - Unreleased
+## 0.6.1 - Unreleased
+
+### Docs
+
+- Maintainers: add CODEOWNERS and maintainer contact info.
+
+### Chore
+
+- Dependencies: update Go modules including `whatsmeow`, `go-sqlite3`, `x/*`, and related runtime libs.
+
+## 0.6.0 - 2026-04-14
+
+### Security
+
+- Search: sanitize FTS5 user queries and escape LIKE wildcards to avoid query-syntax injection.
+- Store: reject SQLite URI path injection via `?` and `#`, guard empty table names, and strip null/control chars from sanitized paths.
+- Sync: recover panics in event handlers and media workers instead of crashing the process.
+
+### Fixed
+
+- Sync: bound reconnect duration so long-running commands do not hold the store lock forever.
+- CLI: force exit on a second SIGINT during long-running commands.
+
+### Added
+
+- Store: add `WACLI_STORE_DIR` to configure the default store directory.
+
+### Chore
+
+- Dependencies: bump `filippo.io/edwards25519`.
+
+## 0.5.0 - 2026-04-12
+
+### Fixed
+
+- WhatsApp connectivity: update `whatsmeow` for the current WhatsApp protocol and fix `405 (Client Outdated)` failures.
 
 ### Changed
 
 - Internal architecture: split store and groups command logic into focused modules for cleaner maintenance and safer follow-up changes.
+- Dependencies: bump core Go modules including `whatsmeow`, `go-sqlite3`, and `x/*` runtime libs.
 
 ### Build
 
@@ -14,11 +50,11 @@
 ### Docs
 
 - README: update usage/docs for the 0.2.0 release baseline.
-- Changelog: roll unreleased tracking from `0.2.1` to `0.5.0`.
+- Changelog: sync unreleased notes with all commits since `v0.2.0`.
 
 ### Chore
 
-- Version: bump CLI version string to `0.5.0` (unreleased).
+- Version: bump CLI version string to `0.5.0`.
 
 ## 0.2.0 - 2026-01-23
 
@@ -37,7 +73,18 @@
 
 - Release: multi-OS GoReleaser configs and workflow for macOS, linux, and windows artifacts.
 
-## 0.1.0 - 2026-01-01
+### Docs
+
+- Install: clarify Homebrew vs local build paths.
+- Changelog: introduce project changelog and prep `0.2.0` release notes.
+
+## 0.1.1 - 2025-12-12
+
+### Fixed
+
+- Release: fix workflow for CGO builds.
+
+## 0.1.0 - 2025-12-12
 
 ### Added
 
