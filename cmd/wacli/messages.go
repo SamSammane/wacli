@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
-	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -78,34 +76,7 @@ func newMessagesListCmd(flags *rootFlags) *cobra.Command {
 				})
 			}
 
-			w := tabwriter.NewWriter(os.Stdout, 2, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "TIME\tCHAT\tFROM\tID\tTEXT")
-			for _, m := range msgs {
-				from := m.SenderJID
-				if m.FromMe {
-					from = "me"
-				}
-				chatLabel := m.ChatName
-				if chatLabel == "" {
-					chatLabel = m.ChatJID
-				}
-				text := strings.TrimSpace(m.DisplayText)
-				if text == "" {
-					text = strings.TrimSpace(m.Text)
-				}
-				if m.MediaType != "" && text == "" {
-					text = "Sent " + m.MediaType
-				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-					m.Timestamp.Local().Format("2006-01-02 15:04:05"),
-					truncate(chatLabel, 24),
-					truncate(from, 18),
-					truncate(m.MsgID, 14),
-					truncate(text, 80),
-				)
-			}
-			_ = w.Flush()
-			return nil
+			return writeMessagesList(os.Stdout, msgs)
 		},
 	}
 
@@ -175,33 +146,9 @@ func newMessagesSearchCmd(flags *rootFlags) *cobra.Command {
 				})
 			}
 
-			w := tabwriter.NewWriter(os.Stdout, 2, 4, 2, ' ', 0)
-			fmt.Fprintf(w, "TIME\tCHAT\tFROM\tID\tMATCH\n")
-			for _, m := range msgs {
-				fromLabel := m.SenderJID
-				if m.FromMe {
-					fromLabel = "me"
-				}
-				chatLabel := m.ChatName
-				if chatLabel == "" {
-					chatLabel = m.ChatJID
-				}
-				match := m.Snippet
-				if match == "" {
-					match = strings.TrimSpace(m.DisplayText)
-				}
-				if match == "" {
-					match = m.Text
-				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-					m.Timestamp.Local().Format("2006-01-02 15:04:05"),
-					truncate(chatLabel, 24),
-					truncate(fromLabel, 18),
-					truncate(m.MsgID, 14),
-					truncate(match, 90),
-				)
+			if err := writeMessagesSearch(os.Stdout, msgs); err != nil {
+				return err
 			}
-			_ = w.Flush()
 			if !a.DB().HasFTS() {
 				fmt.Fprintln(os.Stderr, "Note: FTS5 not enabled; search is using LIKE (slow).")
 			}
@@ -248,22 +195,7 @@ func newMessagesShowCmd(flags *rootFlags) *cobra.Command {
 				return out.WriteJSON(os.Stdout, m)
 			}
 
-			fmt.Fprintf(os.Stdout, "Chat: %s\n", m.ChatJID)
-			if m.ChatName != "" {
-				fmt.Fprintf(os.Stdout, "Chat name: %s\n", m.ChatName)
-			}
-			fmt.Fprintf(os.Stdout, "ID: %s\n", m.MsgID)
-			fmt.Fprintf(os.Stdout, "Time: %s\n", m.Timestamp.Local().Format(time.RFC3339))
-			if m.FromMe {
-				fmt.Fprintf(os.Stdout, "From: me\n")
-			} else {
-				fmt.Fprintf(os.Stdout, "From: %s\n", m.SenderJID)
-			}
-			if m.MediaType != "" {
-				fmt.Fprintf(os.Stdout, "Media: %s\n", m.MediaType)
-			}
-			fmt.Fprintf(os.Stdout, "\n%s\n", m.Text)
-			return nil
+			return writeMessageShow(os.Stdout, m)
 		},
 	}
 
@@ -304,26 +236,7 @@ func newMessagesContextCmd(flags *rootFlags) *cobra.Command {
 				return out.WriteJSON(os.Stdout, msgs)
 			}
 
-			w := tabwriter.NewWriter(os.Stdout, 2, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "TIME\tFROM\tID\tTEXT")
-			for _, m := range msgs {
-				from := m.SenderJID
-				if m.FromMe {
-					from = "me"
-				}
-				line := messageContextLine(m)
-				if m.MsgID == id {
-					line = ">> " + line
-				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
-					m.Timestamp.Local().Format("2006-01-02 15:04:05"),
-					truncate(from, 18),
-					truncate(m.MsgID, 14),
-					truncate(line, 100),
-				)
-			}
-			_ = w.Flush()
-			return nil
+			return writeMessageContext(os.Stdout, msgs, id)
 		},
 	}
 	cmd.Flags().StringVar(&chat, "chat", "", "chat JID")
@@ -331,25 +244,4 @@ func newMessagesContextCmd(flags *rootFlags) *cobra.Command {
 	cmd.Flags().IntVar(&before, "before", 5, "messages before")
 	cmd.Flags().IntVar(&after, "after", 5, "messages after")
 	return cmd
-}
-
-func messageContextLine(m store.Message) string {
-	if line := strings.TrimSpace(m.DisplayText); line != "" {
-		return line
-	}
-	if line := strings.TrimSpace(m.Text); line != "" {
-		return line
-	}
-	if strings.TrimSpace(m.MediaType) != "" {
-		return "Sent " + messageMediaLabel(m.MediaType)
-	}
-	return ""
-}
-
-func messageMediaLabel(mediaType string) string {
-	mt := strings.ToLower(strings.TrimSpace(mediaType))
-	if mt == "" {
-		return "message"
-	}
-	return mt
 }
