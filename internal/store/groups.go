@@ -1,0 +1,87 @@
+package store
+
+import (
+	"strings"
+	"time"
+)
+
+func (d *DB) UpsertGroup(jid, name, ownerJID string, created time.Time) error {
+	now := time.Now().UTC().Unix()
+	_, err := d.sql.Exec(`
+		INSERT INTO groups(jid, name, owner_jid, created_ts, updated_at)
+		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT(jid) DO UPDATE SET
+			name=COALESCE(NULLIF(excluded.name,''), groups.name),
+			owner_jid=COALESCE(NULLIF(excluded.owner_jid,''), groups.owner_jid),
+			created_ts=COALESCE(NULLIF(excluded.created_ts,0), groups.created_ts),
+			updated_at=excluded.updated_at
+	`, jid, name, ownerJID, unix(created), now)
+	return err
+}
+
+func (d *DB) ReplaceGroupParticipants(groupJID string, participants []GroupParticipant) (err error) {
+	tx, err := d.sql.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if _, err = tx.Exec(`DELETE FROM group_participants WHERE group_jid = ?`, groupJID); err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare(`INSERT INTO group_participants(group_jid, user_jid, role, updated_at) VALUES(?, ?, ?, ?)`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	now := time.Now().UTC()
+	for _, participant := range participants {
+		role := strings.TrimSpace(participant.Role)
+		if role == "" {
+			role = "member"
+		}
+		if _, err = stmt.Exec(groupJID, participant.UserJID, role, unix(now)); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func (d *DB) ListGroups(query string, limit int) ([]Group, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	q := `SELECT jid, COALESCE(name,''), COALESCE(owner_jid,''), COALESCE(created_ts,0), updated_at FROM groups WHERE 1=1`
+	var args []interface{}
+	if strings.TrimSpace(query) != "" {
+		needle := "%" + query + "%"
+		q += ` AND (LOWER(name) LIKE LOWER(?) OR LOWER(jid) LIKE LOWER(?))`
+		args = append(args, needle, needle)
+	}
+	q += ` ORDER BY COALESCE(created_ts,0) DESC LIMIT ?`
+	args = append(args, limit)
+
+	rows, err := d.sql.Query(q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []Group
+	for rows.Next() {
+		var g Group
+		var created, updated int64
+		if err := rows.Scan(&g.JID, &g.Name, &g.OwnerJID, &created, &updated); err != nil {
+			return nil, err
+		}
+		g.CreatedAt = fromUnix(created)
+		g.UpdatedAt = fromUnix(updated)
+		out = append(out, g)
+	}
+	return out, rows.Err()
+}
