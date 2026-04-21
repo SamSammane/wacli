@@ -31,6 +31,9 @@ func newMediaDownloadCmd(flags *rootFlags) *cobra.Command {
 			if chat == "" || id == "" {
 				return fmt.Errorf("--chat and --id are required")
 			}
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
 
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()

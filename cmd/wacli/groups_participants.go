@@ -34,6 +34,9 @@ func newGroupsParticipantsActionCmd(flags *rootFlags, action string) *cobra.Comm
 			if strings.TrimSpace(group) == "" || len(users) == 0 {
 				return fmt.Errorf("--jid and at least one --user are required")
 			}
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()
 

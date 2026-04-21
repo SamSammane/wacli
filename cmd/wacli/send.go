@@ -42,6 +42,9 @@ func newSendTextCmd(flags *rootFlags) *cobra.Command {
 			if to == "" || message == "" {
 				return fmt.Errorf("--to and --message are required")
 			}
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
 
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()

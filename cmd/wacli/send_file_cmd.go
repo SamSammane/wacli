@@ -24,6 +24,9 @@ func newSendFileCmd(flags *rootFlags) *cobra.Command {
 			if to == "" || filePath == "" {
 				return fmt.Errorf("--to and --file are required")
 			}
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
 
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()

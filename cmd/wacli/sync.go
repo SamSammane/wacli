@@ -23,6 +23,9 @@ func newSyncCmd(flags *rootFlags) *cobra.Command {
 		Use:   "sync",
 		Short: "Sync messages (requires prior auth; never shows QR)",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
 			ctx, stop := signalContext()
 			defer stop()
 

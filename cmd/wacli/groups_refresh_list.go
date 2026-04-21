@@ -15,6 +15,9 @@ func newGroupsRefreshCmd(flags *rootFlags) *cobra.Command {
 		Use:   "refresh",
 		Short: "Fetch joined groups (live) and update local DB",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()
 

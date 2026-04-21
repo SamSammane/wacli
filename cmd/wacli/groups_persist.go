@@ -5,6 +5,13 @@ import (
 	"go.mau.fi/whatsmeow/types"
 )
 
+func canonicalCLIJID(jid types.JID) types.JID {
+	if jid.Server == types.DefaultUserServer {
+		return jid.ToNonAD()
+	}
+	return jid
+}
+
 func persistGroupInfo(db *store.DB, info *types.GroupInfo) error {
 	if info == nil {
 		return nil
@@ -22,7 +29,7 @@ func persistGroupInfo(db *store.DB, info *types.GroupInfo) error {
 		}
 		ps = append(ps, store.GroupParticipant{
 			GroupJID: info.JID.String(),
-			UserJID:  p.JID.String(),
+			UserJID:  canonicalCLIJID(p.JID).String(),
 			Role:     role,
 		})
 	}

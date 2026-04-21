@@ -1,6 +1,7 @@
 package lock
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -42,6 +43,32 @@ func Acquire(storeDir string) (*Lock, error) {
 	_ = f.Sync()
 
 	return &Lock{path: path, f: f}, nil
+}
+
+func AcquireWithTimeout(ctx context.Context, storeDir string, wait time.Duration) (*Lock, error) {
+	if wait <= 0 {
+		return Acquire(storeDir)
+	}
+	deadline := time.NewTimer(wait)
+	defer deadline.Stop()
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	var lastErr error
+	for {
+		lk, err := Acquire(storeDir)
+		if err == nil {
+			return lk, nil
+		}
+		lastErr = err
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-deadline.C:
+			return nil, fmt.Errorf("timed out waiting for store lock after %s: %w", wait, lastErr)
+		case <-ticker.C:
+		}
+	}
 }
 
 func (l *Lock) Release() error {

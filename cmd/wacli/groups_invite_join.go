@@ -82,6 +82,9 @@ func newGroupsInviteLinkRevokeCmd(flags *rootFlags) *cobra.Command {
 			if strings.TrimSpace(jidStr) == "" {
 				return fmt.Errorf("--jid is required")
 			}
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()
 
@@ -124,6 +127,9 @@ func newGroupsJoinCmd(flags *rootFlags) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if strings.TrimSpace(code) == "" {
 				return fmt.Errorf("--code is required")
+			}
+			if err := flags.requireWritable(); err != nil {
+				return err
 			}
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()

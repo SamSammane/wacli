@@ -23,6 +23,9 @@ func newAuthCmd(flags *rootFlags) *cobra.Command {
 		Use:   "auth",
 		Short: "Authenticate with WhatsApp (QR) and bootstrap sync",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
 			ctx, stop := signalContext()
 			defer stop()
 
@@ -146,6 +149,9 @@ func newAuthLogoutCmd(flags *rootFlags) *cobra.Command {
 		Use:   "logout",
 		Short: "Logout (invalidate session)",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()
 

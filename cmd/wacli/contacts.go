@@ -119,6 +119,9 @@ func newContactsRefreshCmd(flags *rootFlags) *cobra.Command {
 		Use:   "refresh",
 		Short: "Import contacts from whatsmeow store into local DB",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()
 
@@ -138,6 +141,7 @@ func newContactsRefreshCmd(flags *rootFlags) *cobra.Command {
 
 			var count int
 			for jid, info := range cs {
+				jid = canonicalCLIJID(jid)
 				_ = a.DB().UpsertContact(
 					jid.String(),
 					jid.User,
@@ -173,6 +177,9 @@ func newContactsAliasCmd(flags *rootFlags) *cobra.Command {
 			if strings.TrimSpace(jid) == "" || strings.TrimSpace(alias) == "" {
 				return fmt.Errorf("--jid and --alias are required")
 			}
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()
 			a, lk, err := newApp(ctx, flags, false, false)
@@ -197,6 +204,9 @@ func newContactsAliasCmd(flags *rootFlags) *cobra.Command {
 			jid, _ := cmd.Flags().GetString("jid")
 			if strings.TrimSpace(jid) == "" {
 				return fmt.Errorf("--jid is required")
+			}
+			if err := flags.requireWritable(); err != nil {
+				return err
 			}
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()
@@ -235,6 +245,9 @@ func newContactsTagsCmd(flags *rootFlags) *cobra.Command {
 			if strings.TrimSpace(jid) == "" || strings.TrimSpace(tag) == "" {
 				return fmt.Errorf("--jid and --tag are required")
 			}
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()
 			a, lk, err := newApp(ctx, flags, false, false)
@@ -260,6 +273,9 @@ func newContactsTagsCmd(flags *rootFlags) *cobra.Command {
 			tag, _ := cmd.Flags().GetString("tag")
 			if strings.TrimSpace(jid) == "" || strings.TrimSpace(tag) == "" {
 				return fmt.Errorf("--jid and --tag are required")
+			}
+			if err := flags.requireWritable(); err != nil {
+				return err
 			}
 			ctx, cancel := withTimeout(context.Background(), flags)
 			defer cancel()

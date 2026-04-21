@@ -58,6 +58,9 @@ func runPresence(flags *rootFlags, to string, state types.ChatPresence, media st
 	if strings.TrimSpace(to) == "" {
 		return fmt.Errorf("--to is required")
 	}
+	if err := flags.requireWritable(); err != nil {
+		return err
+	}
 
 	ctx, cancel := withTimeout(context.Background(), flags)
 	defer cancel()
