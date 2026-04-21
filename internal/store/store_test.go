@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -126,6 +127,69 @@ func TestMessageUpsertIdempotentAndContext(t *testing.T) {
 	if ctx[0].MsgID != "m1" || ctx[1].MsgID != "m2" || ctx[2].MsgID != "m3" {
 		t.Fatalf("unexpected context order: %v, %v, %v", ctx[0].MsgID, ctx[1].MsgID, ctx[2].MsgID)
 	}
+}
+
+func TestListMessagesFiltersAndOrdering(t *testing.T) {
+	db := openTestDB(t)
+	chat := "chat@s.whatsapp.net"
+	otherChat := "other@s.whatsapp.net"
+	base := time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC)
+	for _, jid := range []string{chat, otherChat} {
+		if err := db.UpsertChat(jid, "dm", jid, base); err != nil {
+			t.Fatalf("UpsertChat %s: %v", jid, err)
+		}
+	}
+	rows := []UpsertMessageParams{
+		{ChatJID: chat, MsgID: "old-from-alice", SenderJID: "alice@s.whatsapp.net", Timestamp: base, Text: "old"},
+		{ChatJID: chat, MsgID: "new-from-me", SenderJID: "me@s.whatsapp.net", Timestamp: base.Add(time.Second), FromMe: true, Text: "new"},
+		{ChatJID: otherChat, MsgID: "other-chat", SenderJID: "alice@s.whatsapp.net", Timestamp: base.Add(2 * time.Second), Text: "other"},
+	}
+	for _, row := range rows {
+		if err := db.UpsertMessage(row); err != nil {
+			t.Fatalf("UpsertMessage %s: %v", row.MsgID, err)
+		}
+	}
+
+	msgs, err := db.ListMessages(ListMessagesParams{ChatJID: chat, Limit: 10})
+	if err != nil {
+		t.Fatalf("ListMessages: %v", err)
+	}
+	if got := messageIDs(msgs); got != "new-from-me,old-from-alice" {
+		t.Fatalf("default order = %s", got)
+	}
+
+	msgs, err = db.ListMessages(ListMessagesParams{ChatJID: chat, Limit: 10, Asc: true})
+	if err != nil {
+		t.Fatalf("ListMessages asc: %v", err)
+	}
+	if got := messageIDs(msgs); got != "old-from-alice,new-from-me" {
+		t.Fatalf("asc order = %s", got)
+	}
+
+	fromMe := true
+	msgs, err = db.ListMessages(ListMessagesParams{ChatJID: chat, Limit: 10, FromMe: &fromMe})
+	if err != nil {
+		t.Fatalf("ListMessages fromMe: %v", err)
+	}
+	if got := messageIDs(msgs); got != "new-from-me" {
+		t.Fatalf("fromMe filter = %s", got)
+	}
+
+	msgs, err = db.ListMessages(ListMessagesParams{ChatJID: chat, SenderJID: "alice@s.whatsapp.net", Limit: 10})
+	if err != nil {
+		t.Fatalf("ListMessages sender: %v", err)
+	}
+	if got := messageIDs(msgs); got != "old-from-alice" {
+		t.Fatalf("sender filter = %s", got)
+	}
+}
+
+func messageIDs(msgs []Message) string {
+	out := make([]string, 0, len(msgs))
+	for _, msg := range msgs {
+		out = append(out, msg.MsgID)
+	}
+	return strings.Join(out, ",")
 }
 
 func TestMediaDownloadInfoAndMarkDownloaded(t *testing.T) {
